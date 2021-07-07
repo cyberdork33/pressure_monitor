@@ -4,56 +4,53 @@
 import time
 import datetime
 import csv
+import board
+import busio
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
 
-# Import the ADS1x15 module.
-from ADS1x15 import ADS1115
+# Global Vars
+supply_voltage = 3.3# Volts
+TIME_BETWEEN_READINGS = 0.5
 
-# Create an ADS1115 ADC (16-bit) instance.
-# adc = ADS1x15.ADS1115()
-adc = ADS1115()
+# Create the I2C bus object
+i2c = busio.I2C(board.SCL, board.SDA)
 
-## GLOBAL SETTINGS
+# Create the ADC object using the I2C bus
+ads = ADS.ADS1115(i2c, address=0x48)
 
-# Choose a gain of 1 for reading voltages from 0 to 4.09V.
-# Or pick a different gain to change the range of voltages that are read:
-#  - 2/3 = +/-6.144V
-#  -   1 = +/-4.096V
-#  -   2 = +/-2.048V
-#  -   4 = +/-1.024V
-#  -   8 = +/-0.512V
-#  -  16 = +/-0.256V
-# See table 3 in the ADS1015/ADS1115 datasheet for more info on gain.
-GAIN = 1
-CHANNEL = 0 # which channel to read from
-DATA_RATE = 128 # what data rate to use. 128 is default.
+# Create single-ended input on channel 0
+channel0 = AnalogIn(ads, ADS.P0)
+
+## GLOBAL VARS
 READINGS = 10 # how many readings to take.
 
 ## MAIN CODE
+# Prompt for input voltage
+print('Ctrl+C to quit')
+print('What Pressure [psi]? >')
+pressure = input()
 
-with open('readings.csv', 'w', newline='', encoding='utf-8') as file:
+with open(pressure+'.csv', 'w', newline='', encoding='utf-8') as file:
 	writer = csv.writer(file)
-	writer.writerow(["Read Count", "Timestamp", "Voltage [V]", "Read Value"])
+	writer.writerow(["Timestamp", "Read Count", "Read Value", "Pressure [psi]", "Voltage [V]"])
 
-	while True:
-		# Prompt for input voltage
-		print('Ctrl+C to quit')
-		print('What Voltage Level? >')
-		voltage = input()
+	for i in range(READINGS):
 
-		for i in range(READINGS):
+		# Get the Current Timestamp
+		ct = datetime.datetime.now()
+		
+		# Read the specified ADC channel using the previously set gain value.
+		# Values read will be a 16-bit signed integer value
+		
+		read_value = channel0.value
+		read_voltage = channel0.voltage
+		
+		# Print the ADC values.
+		print(' {:>5} '.format(read_value))
 
-			# Get the Current Timestamp
-			ct = datetime.datetime.now()
-			
-			# Read the specified ADC channel using the previously set gain value.
-			# Values read will be a 16-bit signed integer value
-			value = adc.read_adc(CHANNEL, gain=GAIN)
-			
-			# Print the ADC values.
-			print(' {0:>6} '.format(value))
+		# Write the read values.
+		writer.writerow([ ct, i, read_value, pressure, read_voltage ])
 
-			# Write the read values.
-			writer.writerow([i, ct, voltage, '{0:>6} '.format(value)])
-
-			# Pause for half a second between each reading
-			time.sleep(0.5)
+		# Pause between readings
+		time.sleep(0.1)

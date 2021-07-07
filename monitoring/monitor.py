@@ -3,54 +3,48 @@
 
 import time
 import datetime
+import board
+import busio
 import csv
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
 
-# Import the ADS1x15 module.
-from ADS1x15 import ADS1115
+## Global Vars
+DEBUG = True
+supply_voltage = 3.3# Volts. This is the supply voltage to the Pressure Sensor.
+TIME_BETWEEN_READINGS = 0.5#60*15# Seconds
 
-# Create an ADS1115 ADC (16-bit) instance.
-adc = ADS1115()
+## Setup interface with ADC
 
-## GLOBAL SETTINGS
+# Create the I2C bus object
+i2c = busio.I2C(board.SCL, board.SDA)
+# Create the ADC object using the I2C bus
+ads = ADS.ADS1115(i2c, address=0x48)
+# Create single-ended input on channel 0
+channel0 = AnalogIn(ads, ADS.P0)
 
-# Choose a gain of 1 for reading voltages from 0 to 4.09V.
-# Or pick a different gain to change the range of voltages that are read:
-#  - 2/3 = +/-6.144V
-#  -   1 = +/-4.096V
-#  -   2 = +/-2.048V
-#  -   4 = +/-1.024V
-#  -   8 = +/-0.512V
-#  -  16 = +/-0.256V
-# See table 3 in the ADS1015/ADS1115 datasheet for more info on gain.
-GAIN = 1
-CHANNEL = 0 # which channel to read from
-DATA_RATE = 128 # what data rate to use. 128 is default.
-TIME_BETWEEN_READINGS = 0.5
-VCC = 3.3
+## Setup recording of data
+output_filename = 'monitor.csv'
 
-## MAIN CODE
-
-print('Ctrl+C to quit')
-print("Timestamp", "Read Value")
+# writer.writerow(["Timestamp", "Raw Value", "Voltage [V]", "Pressure [psi]"])
+if DEBUG:
+	print("Timestamp, Raw Value, Voltage [V], Pressure [psi]")
 
 while True:
+		
+		# Print Current Reading
+	with open('monitor.csv', mode='a', newline='', encoding='utf-8') as file:
+		writer = csv.writer(file)
+		ct = datetime.datetime.now()
 
-	# Get the Current Timestamp
-	ct = datetime.datetime.now()
-	
-	# Read the specified ADC channel using the previously set gain value.
-	# Values read will be a 16-bit signed integer value
-	rawvalue = adc.read_adc(CHANNEL, gain=GAIN)
+		#pressure = (voltage - 0.5) / 0.04
+		pressure = ((channel0.voltage / supply_voltage) - 0.1) * 125
 
-	## Convert the raw value to engineering units according to calibration
-	# Frist convert to Voltage
-	voltage = (rawvalue - 31.2871626669657) / 7976.04146337744
-	# Then to psi
-	#pressure = (voltage - 0.5) / 0.04
-	pressure = ((voltage / VCC) - 0.1) * 125
-
-	# Print the ADC values.
-	print(ct, "{0:8.2f} ".format(pressure))
+		writer.writerow([ct.strftime('%x %X'), channel0.value, channel0.voltage, pressure ])
+		if DEBUG:
+			print( "{:%x %X}, {:>5}, {:>5.3f}, {:>5.2f}".format(ct, channel0.value, 
+																										channel0.voltage, 
+																										pressure))
 
 	# Pause for half a second between each reading
 	time.sleep(TIME_BETWEEN_READINGS)
