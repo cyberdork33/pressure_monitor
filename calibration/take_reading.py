@@ -1,6 +1,8 @@
 # Script to take a reading from the ADS1115
 # cyberdork33 <cyberdork33@gmail.com>
 
+# This is mainly for calibration purposes. This will prompt the user to input a pressure read from a analog gauge and will then take a series of readings from the pressure transducer so that the readings from the pressure transducer can be calibrated to the gauge. 
+
 import time
 import datetime
 import csv
@@ -47,7 +49,7 @@ with open(pressure+'.csv', 'w', newline='', encoding='utf-8') as file:
 		read_voltage = channel0.voltage
 		
 		# Print the ADC values.
-		print(' {:>5} '.format(read_value))
+		print(' {:>5} {:>5.3f}'.format(read_value, read_voltage))
 
 		# Write the read values.
 		writer.writerow([ ct, i, read_value, pressure, read_voltage ])
