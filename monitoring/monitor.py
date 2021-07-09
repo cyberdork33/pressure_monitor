@@ -12,7 +12,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 ## Global Vars
 DEBUG = True
 supply_voltage = 3.3# Volts. This is the supply voltage to the Pressure Sensor.
-TIME_BETWEEN_READINGS = 0.5#60*15# Seconds
+TIME_BETWEEN_READINGS = 60*15# Seconds
 
 ## Setup interface with ADC
 
@@ -32,19 +32,33 @@ if DEBUG:
 
 while True:
 		
-		# Print Current Reading
+	# Open the Monitoring File to append a reading
+	# Print Current Reading
 	with open('monitor.csv', mode='a', newline='', encoding='utf-8') as file:
 		writer = csv.writer(file)
+
+		# get Tiemstamp
 		ct = datetime.datetime.now()
 
+		## Convert the read voltage to pressure
 		#pressure = (voltage - 0.5) / 0.04
 		pressure = ((channel0.voltage / supply_voltage) - 0.1) * 125
+		# Do not report negative pressure values
+		if pressure < 0: pressure = 0
 
-		writer.writerow([ct.strftime('%x %X'), channel0.value, channel0.voltage, pressure ])
+		# Write this reading to the file
+		writer.writerow([ct.strftime('%x %X'), 
+										 channel0.value, 
+										 channel0.voltage, 
+										 pressure ])
+		
+		# Print to stdout preferred
 		if DEBUG:
-			print( "{:%x %X}, {:>5}, {:>5.3f}, {:>5.2f}".format(ct, channel0.value, 
-																										channel0.voltage, 
-																										pressure))
+			format_string = "{:%x %X}, {:>5}, {:>5.3f}, {:>5.2f}"
+			print( format_string.format(ct, 
+																	channel0.value, 
+																	channel0.voltage, 
+																	pressure))
 
 	# Pause for half a second between each reading
 	time.sleep(TIME_BETWEEN_READINGS)
