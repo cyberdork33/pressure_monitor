@@ -29,6 +29,5 @@ def register():
     else:
       # add user to database
       flash('Creating Account.', category='success')
-      pass
 
   return render_template('register.html')
