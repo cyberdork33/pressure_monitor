@@ -17,6 +17,7 @@
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav">
             <a class="nav-item nav-link" href="/">Home</a>
+            <a class="nav-item nav-link" href="/admin">Admin-Home</a>
             <a class="nav-item nav-link" href="/login">Login</a>
             <a class="nav-item nav-link" href="/register">Register</a>
           </div>
@@ -42,7 +43,10 @@
 
     <div class="container">
       {% block content %}
-      This is the default content.
+
+      {% endblock %}
+      {% block admin%}
+
       {% endblock %}
     </div>
     <!-- <script

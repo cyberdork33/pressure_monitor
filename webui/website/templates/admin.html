@@ -1,0 +1,26 @@
+{% extends "home.html" %}
+{% block admin%}
+<h1>Admin Functions</h1>
+<form method="post">
+  <h3>Force a Reading Now</h3>
+  <div class="form-group">
+    <button type="submit" class="btn btn-primary">Force Reading</button>
+  </div>
+  <br />
+  <h3>Take a Calibration Reading</h3>
+  <div class="form-group">
+    <label for="name">Current Pressure:</label>
+    <input 
+      type="text" 
+      class="form-control" 
+      name="manualPressure" 
+      id="manualPressure" 
+      placeholder="..."
+    />
+  </div>
+  <div class="form-group">
+    <button type="submit" class="btn btn-primary">Read</button>
+  </div>
+  <br />
+</form>
+{% endblock %}
