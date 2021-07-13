@@ -24,7 +24,7 @@ def login():
 		else:
 			flash('Email not found.', category='error')
 
-	return render_template("login.html")
+	return render_template("login.html", user=current_user)
 
 @auth.route('/logout')
 @login_required
@@ -53,10 +53,12 @@ def register():
 			flash('Creating Account.', category='success')
 			new_user = User(email=email,
 											name=name,
-											password=generate_password_hash(password1, method='sha256')
+											password=generate_password_hash(password1,
+																											method='sha256'
+																											)
 											)
 			db.session.add(new_user)
 			db.session.commit()
-			return redirect(url_for('views.login'))
+			return redirect(url_for('auth.login'))
 
-	return render_template('register.html')
+	return render_template('register.html', user=current_user)
