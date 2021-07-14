@@ -1,11 +1,6 @@
 # Site Instance Data
 site_db.sqlite3
 
-# Virtual Env
-bin/
-lib/
-include/
-
 # Output files
 *.csv
 
