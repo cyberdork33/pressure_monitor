@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% block content%}
-<h1>This is the Home Page</h1>
-
-# Water is on now! Indicator
+<div>
+{% if on_now %}
+<h1>Water is <span class="badge bg-success">Available!</span></h1>
+<!-- <button type="button" class="btn btn-success .text-nowrap">Water is available!</button> -->
+{% else %}
+<h1>Water is <span class="badge bg-danger">Not Available</span></h1>
+<!-- <button type="button" class="btn btn-danger .text-nowrap">Water is not available.</button> -->
+{% endif %}
+</div>
 <br />
-# Current Reading
+<h3>Current Reading:</h3>
+<div>{{current_pressure}} psi</div>
 <br />
 # Plot of Water Presure over time
 <br />
