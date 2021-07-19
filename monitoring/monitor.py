@@ -3,7 +3,7 @@
 
 import time, datetime
 import board, busio
-import csv
+import csv, json
 from collections import namedtuple
 from os import path
 
@@ -78,6 +78,12 @@ def take_reading() -> Reading:
 	except:
 		print("There was an error while taking the reading.")
 		return False
+
+##------------------------------------------------------------------------------
+## Returns reading data as a JSON string
+def reading_json() -> str:
+	r = take_reading()
+	return json.dumps(r)
 
 ##------------------------------------------------------------------------------
 ## Writes a line to a csv file named filename
