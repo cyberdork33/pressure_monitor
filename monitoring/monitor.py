@@ -69,7 +69,7 @@ def take_reading() -> Reading:
 		# Do not report negative pressure values
 		if pressure < 0: pressure = 0
 
-		this_reading = Reading(timestamp=ct,
+		this_reading = Reading(timestamp=ct.isoformat(),
 													raw=raw_value,
 													voltage=voltage,
 													pressure=pressure)
@@ -115,47 +115,12 @@ def monitor(output_filename:str, time_delta:int):
 		if DEBUG:
 			# If we choose, print values to stdout
 			print("Timestamp, Raw Value, Voltage [V], Pressure [psi]")
-			format_string = "{:%x %X}, {:>5}, {:>5.3f}, {:>5.2f}"
-			print( format_string.format(r.timestamp,
-																	r.raw,
-																	r.voltage,
-																	r.pressure))
+			print(f"{r.timestamp:25}, {r.raw:5}, {r.voltage:5.3f}, {r.pressure:5.2f}")
+
 		# Pause
 		time.sleep(time_delta)
+
 ##------------------------------------------------------------------------------
 ## If we run this directly, default to the monitor function
 if __name__ == '__main__':
 	monitor(DEFAULT_FILENAME, DEFAULT_DELTAT)
-
-# while True:
-# 	# Open the Monitoring File to append a reading
-# 	# Print Current Reading
-# 	with open(output_filename, mode='a', newline='', encoding='utf-8') as file:
-# 		writer = csv.writer(file)
-
-# 		# get Tiemstamp
-# 		ct = datetime.datetime.now()
-
-# 		## Convert the read voltage to pressure
-# 		#pressure = (voltage - 0.5) / 0.04
-# 		pressure = ((channel0.voltage / supply_voltage) - 0.1) * 125
-# 		# Do not report negative pressure values
-# 		if pressure < 0: pressure = 0
-
-# 		# Write this reading to the file
-# 		writer.writerow([ct.strftime('%x %X'),
-# 										 channel0.value,
-# 										 channel0.voltage,
-# 										 pressure ])
-
-# 		# Print to stdout preferred
-# 		if DEBUG:
-# 			format_string = "{:%x %X}, {:>5}, {:>5.3f}, {:>5.2f}"
-# 			print( format_string.format(ct,
-# 																	channel0.value,
-# 																	channel0.voltage,
-# 																	pressure))
-
-# 	# Pause for half a second between each reading
-# 	time.sleep(DEFAULT_DELTAT)
-
