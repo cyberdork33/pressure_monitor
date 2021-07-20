@@ -1,7 +1,7 @@
 # Water Pressure Monitoring System
 cyberdork33/pressure_monitor
 
-Code related to a simple raspberry pi water pressuring monitoring system. Relies on the ADS1x15 Python Library (`ADS1x15.py`) written by Tony DiCola of Adafruit Industries and contributed to the Public Domain that I found online.
+Code related to a simple raspberry pi water pressuring monitoring system.
 
 ### Hardware Used
 * [Raspberry Pi 4 4GB Model B](https://www.raspberrypi.org/products/raspberry-pi-4-model-b/)

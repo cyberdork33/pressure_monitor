@@ -1,4 +1,4 @@
-# Script to constantly monitor the pressure
+# This is the code that interfaces with the hardware to take readings
 # cyberdork33 <cyberdork33@gmail.com>
 
 import time, datetime
@@ -15,7 +15,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 ## Global Vars
 DEBUG = True
 SUPPLY_VOLTAGE = 3.3# Volts. This is the supply voltage to the Pressure Sensor.
-DEFAULT_FILENAME = 'monitor.csv'
+DEFAULT_FILENAME = 'monitor.csv' # This is the default location to write out data for contant monitoring.
 DEFAULT_DELTAT = 60*15# Seconds
 I2C_ADDRESS = 0x48 # 0x48 is the default
 
