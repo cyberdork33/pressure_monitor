@@ -6,6 +6,8 @@ from flask_login import login_user, login_required, logout_user, current_user
 
 auth = Blueprint('auth', __name__)
 
+##------------------------------------------------------------------------------
+## ROUTES
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
 	if request.method == 'POST':
@@ -24,7 +26,7 @@ def login():
 		else:
 			flash('Email not found.', category='error')
 
-	return render_template("login.html", user=current_user)
+	return render_template("login.html.j2", user=current_user)
 
 @auth.route('/logout')
 @login_required
@@ -61,4 +63,4 @@ def register():
 			db.session.commit()
 			return redirect(url_for('auth.login'))
 
-	return render_template('register.html', user=current_user)
+	return render_template('register.html.j2', user=current_user)
