@@ -87,6 +87,8 @@ def get_new_reading(address: str) -> Reading:
 										pressure=theJSON[3])
 	return reading
 
+##------------------------------------------------------------------------------
+## Acquire data from the remote system via web request and record in DB
 def record_new_reading(address: str) -> Reading:
 	r = get_new_reading(address)
 	# Create object and commit to DB
@@ -123,7 +125,7 @@ def common_page_data() -> DisplayData:
 	else:
 		# get current pressure from external system
 		print("Getting a new reading...")
-		r = get_new_reading(DATA_SOURCE_URL)
+		r = record_new_reading(DATA_SOURCE_URL)
 
 	# Prepare everything to go into the page templates.
 	printable_pressure = f"{r.pressure:5.2f}"
