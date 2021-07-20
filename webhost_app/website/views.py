@@ -54,14 +54,7 @@ def admin():
 		# ----- Handle the "Force Reading" Button
 		if button_clicked == 'forceReading':
 			# Force a reading
-			r = get_new_reading(DATA_SOURCE_URL)
-			# Create object and commit to DB
-			new_reading = MonitorReading(
-																	rawvalue=r.raw,
-																	voltage=r.voltage,
-																	pressure=r.pressure)
-			db.session.add(new_reading)
-			db.session.commit()
+			record_new_reading(DATA_SOURCE_URL)
 			# Notify the user that the reading was taken
 			flash(f"A reading was taken. The pressure is {page_data.printable_pressure} psi.", category='success')
 		# ----- Handle the "Calibration Reading" Button
@@ -88,12 +81,21 @@ def admin():
 def get_new_reading(address: str) -> Reading:
 	r = requests.get(address)
 	theJSON = r.json()
-	reading = Reading(
-									timestamp=theJSON[0],
-									raw=theJSON[1],
-									voltage=theJSON[2],
-									pressure=theJSON[3])
+	reading = Reading(timestamp=theJSON[0],
+										raw=theJSON[1],
+										voltage=theJSON[2],
+										pressure=theJSON[3])
 	return reading
+
+def record_new_reading(address: str) -> Reading:
+	r = get_new_reading(address)
+	# Create object and commit to DB
+	new_reading = MonitorReading(	rawvalue=r.raw,
+																voltage=r.voltage,
+																pressure=r.pressure)
+	db.session.add(new_reading)
+	db.session.commit()
+	return r
 
 ##------------------------------------------------------------------------------
 ## Package common data elements needed for page display
@@ -102,7 +104,6 @@ def get_new_reading(address: str) -> Reading:
 ## Data Acquisition System. This won't be needed if I get the DAQ
 ## taking measurements regularly
 def common_page_data() -> DisplayData:
-
 	# Check when last database point was
 	last_reading = MonitorReading.query.order_by(MonitorReading.datetime.desc()).first()
 	print(f'         Now: {datetime.utcnow()}')
