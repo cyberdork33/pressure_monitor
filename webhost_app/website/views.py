@@ -1,10 +1,13 @@
-from flask import Blueprint, render_template, request, flash
-from flask_login import login_required, current_user
 import requests, json
 from datetime import datetime, timedelta
 from collections import namedtuple
-# import plotly
-# import plotly.express as px
+
+from flask import Blueprint, render_template, request, flash
+from flask_login import login_required, current_user
+import plotly.io as pio
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 from . import db
 from .models import MonitorReading
 
@@ -16,6 +19,7 @@ DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
 ## GLOBALS
 DATA_SOURCE_URL = 'http://raspberrypi/json'
 READING_DELTA = 15# minutes
+MIN_PRESSURE_FOR_ON = 30#psi
 
 views = Blueprint('views', __name__)
 
@@ -25,16 +29,54 @@ views = Blueprint('views', __name__)
 def home():
 	# Get data common to home and admin page
 	page_data = common_page_data()
+
+	# Plot stuff
+	#https://stackoverflow.com/questions/37683147/getting-script-and-div-tags-from-plotly-using-python
+
+	date_data = [reading.datetime for reading in MonitorReading.query.all()]
+	pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
+
+	fig = go.Figure()
+	fig.update_layout(height=500)
+	# fig.update_layout(yaxis={"title":"Pressure [psi]", "fixedrange":True})
+	fig.update_layout(yaxis=dict(	title="Pressure [psi]",
+																fixedrange=True),
+										xaxis=dict(	tickangle = 90,
+																dtick=60*60*2*1000))
+
+	# fig = make_subplots(rows=2, cols=1)
+
+	fig.add_scatter(x=date_data, y=pressure_data,
+									# row=1, col=1,
+									name="Measured Pressure",
+									mode="lines+markers",
+									line_color="#17B897",
+									hovertemplate="Time: %{x|%H:%M} UTC<br>"
+																"Pressure: %{y:.2f} psi"
+																"<extra></extra>",
+									)
+	fig.add_scatter(x=date_data, y=[MIN_PRESSURE_FOR_ON]*100,
+									# row=1, col=1,
+									name="Minimum Pressure Needed")
+
+
+	fig.update_layout(legend=dict(
+			yanchor="top",
+			y=1.2,
+			xanchor="left",
+			x=0.01
+	))
+
+	plot_elements = pio.to_html(fig,
+															include_plotlyjs=False,
+															full_html=False)
+
 	return render_template("home.html.j2",
 													user=current_user,
 													on_now=page_data.on_now,
 													current_pressure=page_data.printable_pressure,
-													reading=page_data.reading)
-
-# # https://towardsdatascience.com/an-interactive-web-dashboard-with-plotly-and-flask-c365cdec5e3f
-# @views.route('/chart1')
-# def chart1():
-# 	return render_template('chart1.html', graphJSON=create_plot_data())
+													reading=page_data.reading,
+													plotData=plot_elements)
 
 @views.route('/about')
 def about():
@@ -70,11 +112,6 @@ def admin():
 													on_now=page_data.on_now,
 													current_pressure=page_data.printable_pressure,
 													reading=page_data.reading)
-
-# def create_plot_data():
-# 	fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
-# 	graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-# 	return graphJSON
 
 ##------------------------------------------------------------------------------
 ## Acquire data from the remote system via web request
@@ -131,7 +168,7 @@ def common_page_data() -> DisplayData:
 	printable_pressure = f"{r.pressure:5.2f}"
 	# Determine if water is "on"
 	on_now = False
-	if r.pressure > 30:
+	if r.pressure > MIN_PRESSURE_FOR_ON:
 		on_now = True
 	# Package everything up
 	data = DisplayData(	printable_pressure=printable_pressure,
