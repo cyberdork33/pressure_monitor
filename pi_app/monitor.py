@@ -30,7 +30,7 @@ channel0 = AnalogIn(ads, ADS.P0)
 
 ##------------------------------------------------------------------------------
 ## Define a named tuple to hold data for a particular reading
-Reading = namedtuple("Reading", "timestamp raw voltage pressure")
+Reading = namedtuple("Reading", "datetime rawvalue voltage pressure")
 
 ##------------------------------------------------------------------------------
 ## This function will create an output csv file
@@ -69,8 +69,8 @@ def take_reading() -> Reading:
 		# Do not report negative pressure values
 		if pressure < 0: pressure = 0
 
-		this_reading = Reading(timestamp=ct.isoformat(),
-													raw=raw_value,
+		this_reading = Reading(datetime=ct.strftime('%Y-%m-%d %H:%M:%S'),
+													rawvalue=raw_value,
 													voltage=voltage,
 													pressure=pressure)
 
