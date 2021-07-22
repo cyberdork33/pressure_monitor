@@ -59,7 +59,7 @@ def take_reading() -> Reading:
 		voltage = channel0.voltage
 
 		# Get Timestamp
-		ct = datetime.datetime.now()
+		ct = datetime.datetime.utcnow()
 
 		# Convert the read voltage to pressure
 		# This would be the equation to change due to any calibration
