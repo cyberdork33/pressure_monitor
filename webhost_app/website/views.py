@@ -11,8 +11,6 @@ from plotly.subplots import make_subplots
 from . import db
 from .models import MonitorReading
 
-## Define a named tuple to hold data for a particular reading
-Reading = namedtuple("Reading", "timestamp raw voltage pressure")
 ## Define a named tuple to hold data for display on page
 DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
 
@@ -115,26 +113,30 @@ def admin():
 
 ##------------------------------------------------------------------------------
 ## Acquire data from the remote system via web request
-def get_new_reading(address: str) -> Reading:
+def get_new_reading(address: str) -> MonitorReading:
 	r = requests.get(address)
 	theJSON = r.json()
-	reading = Reading(timestamp=theJSON[0],
-										raw=theJSON[1],
+	print(f"Time String from JSON: {theJSON[0]}")
+	without_fracional_seconds = theJSON[0].split('.')[0]
+	datetime_object = datetime.strptime(without_fracional_seconds, '%Y-%m-%d %H:%M:%S')
+	print(f"Time from datetime: {datetime_object}")
+	reading = MonitorReading(datetime=theJSON[0],
+										rawvalue=theJSON[1],
 										voltage=theJSON[2],
 										pressure=theJSON[3])
 	return reading
 
 ##------------------------------------------------------------------------------
 ## Acquire data from the remote system via web request and record in DB
-def record_new_reading(address: str) -> Reading:
+def record_new_reading(address: str) -> MonitorReading:
 	r = get_new_reading(address)
 	# Create object and commit to DB
-	new_reading = MonitorReading(	rawvalue=r.raw,
+	new_reading = MonitorReading(	rawvalue=r.rawvalue,
 																voltage=r.voltage,
 																pressure=r.pressure)
 	db.session.add(new_reading)
 	db.session.commit()
-	return r
+	return new_reading
 
 ##------------------------------------------------------------------------------
 ## Package common data elements needed for page display
@@ -155,8 +157,8 @@ def common_page_data() -> DisplayData:
 	# If the last reading was within the valid window,
 	# just use what is in the database.
 	if time_passed <= timedelta(minutes=READING_DELTA):
-		r = Reading(timestamp=last_reading.datetime,
-								raw=last_reading.rawvalue,
+		r = MonitorReading(datetime=last_reading.datetime,
+								rawvalue=last_reading.rawvalue,
 								voltage=last_reading.voltage,
 								pressure=last_reading.pressure)
 	else:
