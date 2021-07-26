@@ -207,7 +207,7 @@ def generate_plots(dates, pressures) -> str:
                                 "Pressure: %{y:.2f} psi"
                                 "<extra></extra>",
                   )
-  fig.add_scatter(x=dates, y=[MIN_PRESSURE_FOR_ON]*100,
+  fig.add_scatter(x=dates, y=[MIN_PRESSURE_FOR_ON]*len(dates),
                   name="Minimum Pressure Needed")
 
   fig.update_layout(legend=dict(
