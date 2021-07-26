@@ -28,46 +28,10 @@ def home():
 	# Get data common to home and admin page
 	page_data = common_page_data()
 
-	# Plot stuff
-	#https://stackoverflow.com/questions/37683147/getting-script-and-div-tags-from-plotly-using-python
-
+  # Query database for data to plot and generate the plot
 	date_data = [reading.datetime for reading in MonitorReading.query.all()]
 	pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
-
-	fig = go.Figure()
-	fig.update_layout(height=500)
-	# fig.update_layout(yaxis={"title":"Pressure [psi]", "fixedrange":True})
-	fig.update_layout(yaxis=dict(	title="Pressure [psi]",
-																fixedrange=True),
-										xaxis=dict(	tickangle = 90,
-																dtick=60*60*2*1000))
-
-	# fig = make_subplots(rows=2, cols=1)
-
-	fig.add_scatter(x=date_data, y=pressure_data,
-									# row=1, col=1,
-									name="Measured Pressure",
-									mode="lines+markers",
-									line_color="#17B897",
-									hovertemplate="Time: %{x|%H:%M} UTC<br>"
-																"Pressure: %{y:.2f} psi"
-																"<extra></extra>",
-									)
-	fig.add_scatter(x=date_data, y=[MIN_PRESSURE_FOR_ON]*100,
-									# row=1, col=1,
-									name="Minimum Pressure Needed")
-
-
-	fig.update_layout(legend=dict(
-			yanchor="top",
-			y=1.2,
-			xanchor="left",
-			x=0.01
-	))
-
-	plot_elements = pio.to_html(fig,
-															include_plotlyjs=False,
-															full_html=False)
+  plot_elements = generate_plots(date_data, pressure_data)
 
 	return render_template("home.html.j2",
 													user=current_user,
@@ -177,3 +141,39 @@ def common_page_data() -> DisplayData:
 											on_now=on_now,
 											reading=r)
 	return data
+
+##------------------------------------------------------------------------------
+## This is the function that uses plotly to generate the plot(s). It outputs
+## a string of HTML that can be inserted in the final page. This is not
+## standalone though and will require that hte using page include the plotly js
+## script to display.
+def generate_plots(dates, pressures) -> str:
+  fig = go.Figure()
+  fig.update_layout(height=500)
+  fig.update_layout(yaxis=dict(title="Pressure [psi]",
+                               fixedrange=True),
+                    xaxis=dict(tickangle = 90,
+                               dtick=60*60*4*1000)) # Time in milliseconds
+
+  fig.add_scatter(x=dates, y=pressures,
+                  name="Measured Pressure",
+                  mode="lines+markers",
+                  line_color="#17B897",
+                  hovertemplate="Time: %{x|%H:%M} UTC<br>"
+                                "Pressure: %{y:.2f} psi"
+                                "<extra></extra>",
+                  )
+  fig.add_scatter(x=dates, y=[MIN_PRESSURE_FOR_ON]*100,
+                  name="Minimum Pressure Needed")
+
+  fig.update_layout(legend=dict(
+                            yanchor="top",
+                            y=1.2,
+                            xanchor="left",
+                            x=0.01))
+
+  plot_elements = pio.to_html(fig,
+                              include_plotlyjs=False,
+                              full_html=False)
+
+  return plot_elements
