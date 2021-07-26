@@ -16,3 +16,4 @@ Code related to a simple raspberry pi water pressuring monitoring system.
 * Flask
 * Flask-Login
 * Flask-SQLAlchemy
+* plotly

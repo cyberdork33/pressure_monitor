@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, time
 from datetime import datetime, timedelta
 from collections import namedtuple
 
@@ -10,6 +10,7 @@ from plotly.subplots import make_subplots
 
 from . import db
 from .models import MonitorReading
+from .data_fetch import record_new_reading
 
 ## Define a named tuple to hold data for display on page
 DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
@@ -18,6 +19,7 @@ DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
 DATA_SOURCE_URL = 'http://raspberrypi/json'
 READING_DELTA = 15# minutes
 MIN_PRESSURE_FOR_ON = 30#psi
+RECORD_LIFETIME = 1 #weeks
 
 views = Blueprint('views', __name__)
 
@@ -25,82 +27,113 @@ views = Blueprint('views', __name__)
 ## ROUTES
 @views.route('/')
 def home():
-	# Get data common to home and admin page
-	page_data = common_page_data()
+  # Get data common to home and admin page
+  page_data = common_page_data()
 
   # Query database for data to plot and generate the plot
-	date_data = [reading.datetime for reading in MonitorReading.query.all()]
-	pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
+  date_data = [reading.datetime for reading in MonitorReading.query.all()]
+  pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
   plot_elements = generate_plots(date_data, pressure_data)
 
-	return render_template("home.html.j2",
-													user=current_user,
-													on_now=page_data.on_now,
-													current_pressure=page_data.printable_pressure,
-													reading=page_data.reading,
-													plotData=plot_elements)
+  return render_template("home.html.j2",
+                         user=current_user,
+                         on_now=page_data.on_now,
+                         current_pressure=page_data.printable_pressure,
+                         reading=page_data.reading,
+                         plotData=plot_elements)
 
 @views.route('/about')
 def about():
-	# Just route to the page. Simple and plain.
-	return render_template("about.html.j2",
-													user=current_user)
+  # Just route to the page. Simple and plain.
+  return render_template("about.html.j2",
+                         user=current_user)
 
 @views.route('/admin', methods=['GET','POST'])
 @login_required
 def admin():
-	# Get data common to home and admin page
-	page_data = common_page_data()
+  # Get data common to home and admin page
+  page_data = common_page_data()
 
-	# If a POST request is made, handle the button clicked
-	if request.method == 'POST':
-		button_clicked = request.form['submit_button']
-		# ----- Handle the "Force Reading" Button
-		if button_clicked == 'forceReading':
-			# Force a reading
-			record_new_reading(DATA_SOURCE_URL)
-			# Notify the user that the reading was taken
-			flash(f"A reading was taken. The pressure is {page_data.printable_pressure} psi.", category='success')
-		# ----- Handle the "Calibration Reading" Button
-		elif button_clicked == 'calibrateReading':
-			# Call the calibrate-reading method
-			flash('A calibration reading was taken.', category='success')
-		# ----- Unidentified Button...
-		else:
-			flash('Unsure what reading to take.', category='error')
+  # If a POST request is made, handle the button clicked
+  if request.method == 'POST':
+    button_clicked = request.form['submit_button']
+    # ----- Handle the "Force Reading" Button
+    if button_clicked == 'forceReading':
+      # Force a reading
+      record_new_reading(DATA_SOURCE_URL)
+      # Notify the user that the reading was taken
+      flash(f"A reading was taken. The pressure is "
+            f"{page_data.printable_pressure} psi.", category='success')
+    # ----- Handle the "Calibration Reading" Button
+    elif button_clicked == 'calibrateReading':
+      # Call the calibrate-reading method
+      flash('A calibration reading was taken.', category='success')
+    # ----- Unidentified Button...
+    else:
+      flash('Unsure what reading to take.', category='error')
 
-	return render_template("admin.html.j2",
-													user=current_user,
-													on_now=page_data.on_now,
-													current_pressure=page_data.printable_pressure,
-													reading=page_data.reading)
+  return render_template("admin.html.j2",
+                          user=current_user,
+                          on_now=page_data.on_now,
+                          current_pressure=page_data.printable_pressure,
+                          reading=page_data.reading)
 
-##------------------------------------------------------------------------------
-## Acquire data from the remote system via web request
-def get_new_reading(address: str) -> MonitorReading:
-	r = requests.get(address)
-	theJSON = r.json()
-	print(f"Time String from JSON: {theJSON[0]}")
-	without_fracional_seconds = theJSON[0].split('.')[0]
-	datetime_object = datetime.strptime(without_fracional_seconds, '%Y-%m-%d %H:%M:%S')
-	print(f"Time from datetime: {datetime_object}")
-	reading = MonitorReading(datetime=theJSON[0],
-										rawvalue=theJSON[1],
-										voltage=theJSON[2],
-										pressure=theJSON[3])
-	return reading
+# def monitor():
+#   while True:
+#     # Get a reading from the pi
+#     # Insert into the DB
+#     record_new_reading(DATA_SOURCE_URL)
+#     print("Recorded a new reading.")
+#     # pop old readings
+#     for reading in MonitorReading.query.all():
+#       time_passed = datetime.utcnow() - reading.datetime
+#       if time_passed > timedelta(weeks=RECORD_LIFETIME):
+#         print(f"Removing record from {reading.datetime}")
+#         # TODO code to delete record
+#     # Pause
 
-##------------------------------------------------------------------------------
-## Acquire data from the remote system via web request and record in DB
-def record_new_reading(address: str) -> MonitorReading:
-	r = get_new_reading(address)
-	# Create object and commit to DB
-	new_reading = MonitorReading(	rawvalue=r.rawvalue,
-																voltage=r.voltage,
-																pressure=r.pressure)
-	db.session.add(new_reading)
-	db.session.commit()
-	return new_reading
+#     time.sleep(READING_DELTA*60)
+#     # repeat
+
+# ##------------------------------------------------------------------------------
+# ## Acquire data from the remote system via web request
+# def get_new_reading(address: str) -> MonitorReading:
+#   r = requests.get(address)
+#   theJSON = r.json()
+#   print(f"Time String from JSON: {theJSON[0]}")
+#   # It looks like stripping the fractional seconds is pointless
+#   # as they just get added back in the database.
+#   without_fracional_seconds = theJSON[0].split('.')[0]
+#   datetime_object = datetime.strptime(without_fracional_seconds,
+#                                       '%Y-%m-%d %H:%M:%S')
+#   print(f"Time from datetime: {datetime_object}")
+#   reading = MonitorReading( datetime=datetime_object,
+#                             rawvalue=theJSON[1],
+#                             voltage=theJSON[2],
+#                             pressure=theJSON[3])
+#   return reading
+
+# ##------------------------------------------------------------------------------
+# ## Acquire data from the remote system via web request and record in DB
+# def record_new_reading(address: str) -> MonitorReading:
+#   r = get_new_reading(address)
+
+#   db.session.add(r)
+#   db.session.commit()
+#   return r
+
+# ##------------------------------------------------------------------------------
+# ## Acquire data from the remote system via web request and record in DB
+# def record_new_reading(address: str) -> MonitorReading:
+#   r = get_new_reading(address)
+#   # Create object and commit to DB
+#   new_reading = MonitorReading(datetime=r.datetime,
+#                                rawvalue=r.rawvalue,
+#                                voltage=r.voltage,
+#                                pressure=r.pressure)
+#   db.session.add(new_reading)
+#   db.session.commit()
+#   return new_reading
 
 ##------------------------------------------------------------------------------
 ## Package common data elements needed for page display
@@ -109,38 +142,49 @@ def record_new_reading(address: str) -> MonitorReading:
 ## Data Acquisition System. This won't be needed if I get the DAQ
 ## taking measurements regularly
 def common_page_data() -> DisplayData:
-	# Check when last database point was
-	last_reading = MonitorReading.query.order_by(MonitorReading.datetime.desc()).first()
-	print(f'         Now: {datetime.utcnow()}')
-	print(f'Last Reading: {last_reading.datetime}')
+  # Get last reading from DB
+  sort_field = MonitorReading.datetime.desc()
+  last_reading = MonitorReading.query.order_by(sort_field).first()
+  # If the last reading was within the valid window,
+  # just use what is in the database.
+  r = MonitorReading(	datetime=last_reading.datetime,
+                      rawvalue=last_reading.rawvalue,
+                      voltage=last_reading.voltage,
+                      pressure=last_reading.pressure)
 
-	# Determine how long ago the last reading was made
-	time_passed = datetime.utcnow() - last_reading.datetime
-	print(f"Last Reading was {time_passed.total_seconds()/60} minutes ago.")
+  # # Check when last database point was
+  # sort_field = MonitorReading.datetime.desc()
+  # last_reading = MonitorReading.query.order_by(sort_field).first()
+  # print(f'         Now: {datetime.utcnow()}')
+  # print(f'Last Reading: {last_reading.datetime}')
 
-	# If the last reading was within the valid window,
-	# just use what is in the database.
-	if time_passed <= timedelta(minutes=READING_DELTA):
-		r = MonitorReading(datetime=last_reading.datetime,
-								rawvalue=last_reading.rawvalue,
-								voltage=last_reading.voltage,
-								pressure=last_reading.pressure)
-	else:
-		# get current pressure from external system
-		print("Getting a new reading...")
-		r = record_new_reading(DATA_SOURCE_URL)
+  # # Determine how long ago the last reading was made
+  # time_passed = datetime.utcnow() - last_reading.datetime
+  # print(f"Last Reading was {time_passed.total_seconds()/60} minutes ago.")
 
-	# Prepare everything to go into the page templates.
-	printable_pressure = f"{r.pressure:5.2f}"
-	# Determine if water is "on"
-	on_now = False
-	if r.pressure > MIN_PRESSURE_FOR_ON:
-		on_now = True
-	# Package everything up
-	data = DisplayData(	printable_pressure=printable_pressure,
-											on_now=on_now,
-											reading=r)
-	return data
+  # # If the last reading was within the valid window,
+  # # just use what is in the database.
+  # if time_passed <= timedelta(minutes=READING_DELTA):
+  #   r = MonitorReading(	datetime=last_reading.datetime,
+  #                       rawvalue=last_reading.rawvalue,
+  #                       voltage=last_reading.voltage,
+  #                       pressure=last_reading.pressure)
+  # else:
+  #   # get current pressure from external system
+  #   print("Getting a new reading...")
+  #   r = record_new_reading(DATA_SOURCE_URL)
+
+  # Prepare everything to go into the page templates.
+  printable_pressure = f"{r.pressure:5.2f}"
+  # Determine if water is "on"
+  on_now = False
+  if r.pressure > MIN_PRESSURE_FOR_ON:
+    on_now = True
+  # Package everything up
+  data = DisplayData(	printable_pressure=printable_pressure,
+                      on_now=on_now,
+                      reading=r)
+  return data
 
 ##------------------------------------------------------------------------------
 ## This is the function that uses plotly to generate the plot(s). It outputs
