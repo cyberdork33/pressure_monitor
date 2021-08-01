@@ -7,9 +7,5 @@ services:
     image: webhost_app:latest
     restart: always
     ports:
-      - "8080:80"
+      - "8800:80"
 
-networks:
-  default:
-    external:
-      name: bridge
