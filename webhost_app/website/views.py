@@ -30,9 +30,20 @@ def home():
   # Get data common to home and admin page
   page_data = common_page_data()
 
-  # Query database for data to plot and generate the plot
+  ## Query database for data to plot and generate the plot
+  # First get the reading dates
   date_data = [reading.datetime for reading in MonitorReading.query.all()]
+
+  # Convert all the times to the local timezone
+  local_dates = []
+  for date in date_data:
+    local_dates.append(utc2local(date))
+  date_data = local_dates
+
+  # Now get the pressures
   pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
+
+  # generate the plots with this data
   plot_elements = generate_plots(date_data, pressure_data)
 
   return render_template("home.html.j2",
@@ -78,63 +89,6 @@ def admin():
                           current_pressure=page_data.printable_pressure,
                           reading=page_data.reading)
 
-# def monitor():
-#   while True:
-#     # Get a reading from the pi
-#     # Insert into the DB
-#     record_new_reading(DATA_SOURCE_URL)
-#     print("Recorded a new reading.")
-#     # pop old readings
-#     for reading in MonitorReading.query.all():
-#       time_passed = datetime.utcnow() - reading.datetime
-#       if time_passed > timedelta(weeks=RECORD_LIFETIME):
-#         print(f"Removing record from {reading.datetime}")
-#         # TODO code to delete record
-#     # Pause
-
-#     time.sleep(READING_DELTA*60)
-#     # repeat
-
-# ##------------------------------------------------------------------------------
-# ## Acquire data from the remote system via web request
-# def get_new_reading(address: str) -> MonitorReading:
-#   r = requests.get(address)
-#   theJSON = r.json()
-#   print(f"Time String from JSON: {theJSON[0]}")
-#   # It looks like stripping the fractional seconds is pointless
-#   # as they just get added back in the database.
-#   without_fracional_seconds = theJSON[0].split('.')[0]
-#   datetime_object = datetime.strptime(without_fracional_seconds,
-#                                       '%Y-%m-%d %H:%M:%S')
-#   print(f"Time from datetime: {datetime_object}")
-#   reading = MonitorReading( datetime=datetime_object,
-#                             rawvalue=theJSON[1],
-#                             voltage=theJSON[2],
-#                             pressure=theJSON[3])
-#   return reading
-
-# ##------------------------------------------------------------------------------
-# ## Acquire data from the remote system via web request and record in DB
-# def record_new_reading(address: str) -> MonitorReading:
-#   r = get_new_reading(address)
-
-#   db.session.add(r)
-#   db.session.commit()
-#   return r
-
-# ##------------------------------------------------------------------------------
-# ## Acquire data from the remote system via web request and record in DB
-# def record_new_reading(address: str) -> MonitorReading:
-#   r = get_new_reading(address)
-#   # Create object and commit to DB
-#   new_reading = MonitorReading(datetime=r.datetime,
-#                                rawvalue=r.rawvalue,
-#                                voltage=r.voltage,
-#                                pressure=r.pressure)
-#   db.session.add(new_reading)
-#   db.session.commit()
-#   return new_reading
-
 ##------------------------------------------------------------------------------
 ## Package common data elements needed for page display
 ## This will provide the last reading in the database if it was
@@ -152,29 +106,11 @@ def common_page_data() -> DisplayData:
                       voltage=last_reading.voltage,
                       pressure=last_reading.pressure)
 
-  # # Check when last database point was
-  # sort_field = MonitorReading.datetime.desc()
-  # last_reading = MonitorReading.query.order_by(sort_field).first()
-  # print(f'         Now: {datetime.utcnow()}')
-  # print(f'Last Reading: {last_reading.datetime}')
+  ## Prepare everything to go into the page templates.
 
-  # # Determine how long ago the last reading was made
-  # time_passed = datetime.utcnow() - last_reading.datetime
-  # print(f"Last Reading was {time_passed.total_seconds()/60} minutes ago.")
+  # Convert time zone to local
+  r.datetime = utc2local(r.datetime)
 
-  # # If the last reading was within the valid window,
-  # # just use what is in the database.
-  # if time_passed <= timedelta(minutes=READING_DELTA):
-  #   r = MonitorReading(	datetime=last_reading.datetime,
-  #                       rawvalue=last_reading.rawvalue,
-  #                       voltage=last_reading.voltage,
-  #                       pressure=last_reading.pressure)
-  # else:
-  #   # get current pressure from external system
-  #   print("Getting a new reading...")
-  #   r = record_new_reading(DATA_SOURCE_URL)
-
-  # Prepare everything to go into the page templates.
   printable_pressure = f"{r.pressure:5.2f}"
   # Determine if water is "on"
   on_now = False
@@ -203,7 +139,7 @@ def generate_plots(dates, pressures) -> str:
                   name="Measured Pressure",
                   mode="lines+markers",
                   line_color="#17B897",
-                  hovertemplate="Time: %{x|%H:%M} UTC<br>"
+                  hovertemplate="Time: %{x|%H:%M}<br>"
                                 "Pressure: %{y:.2f} psi"
                                 "<extra></extra>",
                   )
@@ -221,3 +157,9 @@ def generate_plots(dates, pressures) -> str:
                               full_html=False)
 
   return plot_elements
+
+# https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime
+def utc2local(utc:datetime) -> datetime:
+    epoch = time.mktime(utc.timetuple())
+    offset = datetime.fromtimestamp(epoch) - datetime.utcfromtimestamp(epoch)
+    return utc + offset
