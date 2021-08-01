@@ -1,0 +1,10 @@
+version: '3.4'
+
+services:
+  press_monitor:
+    container_name: press_monitor
+    hostname: press_monitor
+    image: webhost_app:latest
+    restart: always
+    ports:
+      - "8080:80"

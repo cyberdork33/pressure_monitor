@@ -13,28 +13,12 @@ def cron_reading(app):
   record_new_reading(DATA_SOURCE_URL)
   print("Recorded a new reading through cron.")
 
-# def monitor(app):
-#   READING_DELTA = 15*60 #seconds
-
-#   while True:
-#     # Get a reading from the pi
-#     # Insert into the DB
-#     record_new_reading(DATA_SOURCE_URL)
-#     print("Recorded a new reading.")
-#     # pop old readings
-#     for reading in MonitorReading.query.all():
-#       time_passed = datetime.utcnow() - reading.datetime
-#       if time_passed <= timedelta(weeks=RECORD_LIFETIME):
-#         print(f"Removing record from {reading.datetime}")
-#     # Pause
-#     time.sleep(READING_DELTA)
-#     # repeat
-
 ##------------------------------------------------------------------------------
 ## Acquire data from the remote system via web request
 def get_new_reading(address: str) -> MonitorReading:
   r = requests.get(address)
   theJSON = r.json()
+  # TODO Test for no response!
   print(f"Time String from JSON: {theJSON[0]}")
   without_fracional_seconds = theJSON[0].split('.')[0]
   datetime_object = datetime.strptime(without_fracional_seconds,
@@ -53,6 +37,9 @@ def record_new_reading(address: str) -> MonitorReading:
 
   db.session.add(r)
   db.session.commit()
+
+  # TODO: Prune the database for old records.
+
   return r
 
 if __name__ == '__main__':
