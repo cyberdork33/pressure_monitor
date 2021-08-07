@@ -1,24 +1,24 @@
 {% extends "base.html.j2" %}
 
 {% block content%}
-	<div class="container">
-		<div class="pt-3">
-			<h2>Water is
-				<span {% if on_now %} class="badge bg-success">Available! {% else %} class="badge bg-danger">Not Available{% endif %}</span>
-			</h2>
-		</div>
-		<br />
-		<div>
-			<h3>Current Pressure:</h3>
-			<h2>{{current_pressure}} psi</h2>
-			<small class="text-muted">{{reading.datetime}}</small>
-		</div>
-	</div>
-	<div class="wrapper">
-		<div class="card">
-			{{plotData}}
-		</div>
-	</div>
+  <div class="container">
+    <div class="pt-3">
+      <h2>Water is
+        <span {% if on_now %} class="badge bg-success">Available! {% else %} class="badge bg-danger">Not Available{% endif %}</span>
+      </h2>
+    </div>
+    <br />
+    <div>
+      <h3>Current Pressure:</h3>
+      <h2>{{current_pressure}} psi</h2>
+      <small class="text-muted">{{reading.datetime}}</small>
+    </div>
+  </div>
+  <div class="wrapper">
+    <div class="card">
+      {{plotData}}
+    </div>
+  </div>
 <!-- # TODO - Plot of Water Presure over time -->
 <!-- <iframe src="/chart1" frameborder="0" style="width:100%; height:500px;overflow:auto;"></iframe> -->
 <!-- # TODO - Histogram of water pressure vs time of day -->

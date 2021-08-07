@@ -138,6 +138,7 @@ def generate_plots(dates, pressures) -> str:
   fig.add_scatter(x=dates, y=pressures,
                   name="Measured Pressure",
                   mode="lines+markers",
+                  # mode="markers",
                   line_color="#17B897",
                   hovertemplate="Time: %{x|%H:%M}<br>"
                                 "Pressure: %{y:.2f} psi"
