@@ -32,6 +32,7 @@ def home():
 
   ## Query database for data to plot and generate the plot
   # First get the reading dates
+  # TODO od these queries to only grab the last week's worth of data
   date_data = [reading.datetime for reading in MonitorReading.query.all()]
 
   # Convert all the times to the local timezone
@@ -68,6 +69,7 @@ def admin():
   # If a POST request is made, handle the button clicked
   if request.method == 'POST':
     button_clicked = request.form['submit_button']
+
     # ----- Handle the "Force Reading" Button
     if button_clicked == 'forceReading':
       # Force a reading
@@ -79,6 +81,10 @@ def admin():
     elif button_clicked == 'calibrateReading':
       # Call the calibrate-reading method
       flash('A calibration reading was taken.', category='success')
+    elif button_clicked == 'pruneDatabase':
+      cutoff_date = datetime.strptime(request.form['pruneBefore'], '%Y-%m-%d')
+      MonitorReading.query.filter(MonitorReading.datetime < cutoff_date).delete()
+      db.session.commit()
     # ----- Unidentified Button...
     else:
       flash('Unsure what reading to take.', category='error')

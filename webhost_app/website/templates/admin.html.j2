@@ -39,6 +39,28 @@
       </button>
     </div>
     <br />
+    <hr />
+    <h3>Manually Prune Database</h3>
+    <div class="form-group">
+      <label for="name">Clear Data Before:</label>
+      <input
+        type="date"
+        class="form-control"
+        name="pruneBefore"
+        id="pruneBefore"
+        placeholder="Enter manually read pressure."
+      />
+    </div>
+    <br />
+    <div class="form-group">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        name="submit_button"
+        value="pruneDatabase">
+        Prune Database
+      </button>
+    </div>
   </form>
 </div>
 {% endblock %}

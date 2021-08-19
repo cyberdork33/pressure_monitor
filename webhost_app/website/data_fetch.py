@@ -1,5 +1,5 @@
-import requests, time
-from datetime import datetime, timedelta
+import requests
+from datetime import datetime
 from . import db
 from .models import MonitorReading
 
@@ -37,9 +37,6 @@ def record_new_reading(address: str) -> MonitorReading:
 
   db.session.add(r)
   db.session.commit()
-
-  # TODO: Prune the database for old records.
-
   return r
 
 if __name__ == '__main__':
