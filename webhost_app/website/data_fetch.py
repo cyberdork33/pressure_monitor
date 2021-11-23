@@ -4,7 +4,7 @@ from . import db
 from .models import MonitorReading
 
 ## GLOBALS
-DATA_SOURCE_URL = 'http://raspberrypi/json'
+DATA_SOURCE_URL = 'http://pressure-pi/json'
 RECORD_LIFETIME = 1 #weeks
 
 

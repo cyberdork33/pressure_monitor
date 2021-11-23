@@ -16,7 +16,7 @@ from .data_fetch import record_new_reading
 DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
 
 ## GLOBALS
-DATA_SOURCE_URL = 'http://raspberrypi/json'
+DATA_SOURCE_URL = 'http://pressure-pi/json'
 READING_DELTA = 15# minutes
 MIN_PRESSURE_FOR_ON = 30#psi
 RECORD_LIFETIME = 1 #weeks
@@ -105,8 +105,13 @@ def common_page_data() -> DisplayData:
   # Get last reading from DB
   sort_field = MonitorReading.datetime.desc()
   last_reading = MonitorReading.query.order_by(sort_field).first()
+  if not last_reading:
+    # There was no Last Reading. Force one.
+    last_reading = record_new_reading(DATA_SOURCE_URL)
+
   # If the last reading was within the valid window,
   # just use what is in the database.
+  print('last_reading content = ', last_reading)
   r = MonitorReading(	datetime=last_reading.datetime,
                       rawvalue=last_reading.rawvalue,
                       voltage=last_reading.voltage,
