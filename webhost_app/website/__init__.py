@@ -5,7 +5,7 @@ from os import path
 from flask_login import LoginManager
 
 db = SQLAlchemy()
-DB_NAME = "site_db.sqlite3"
+DB_NAME = "database/site_db.sqlite3"
 READING_DELTA = 15 #minutes
 
 def create_app():
