@@ -73,6 +73,7 @@ def admin():
     # ----- Handle the "Force Reading" Button
     if button_clicked == 'forceReading':
       # Force a reading
+      print('Forcing a reading.')
       record_new_reading(DATA_SOURCE_URL)
       # Notify the user that the reading was taken
       flash(f"A reading was taken. The pressure is "

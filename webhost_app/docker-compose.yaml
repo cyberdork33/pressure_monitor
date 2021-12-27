@@ -9,3 +9,7 @@ services:
     ports:
       - "8800:80"
 
+networks:
+  default:
+    external:
+      name: external_access
