@@ -15,7 +15,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 ## Global Vars
 DEBUG = True
 SUPPLY_VOLTAGE = 3.3# Volts. This is the supply voltage to the Pressure Sensor.
-DEFAULT_FILENAME = 'monitor.csv' # This is the default location to write out data for contant monitoring.
+DEFAULT_FILENAME = 'monitor.csv' # This is the default location to write out data for constant monitoring.
 DEFAULT_DELTAT = 60*15# Seconds
 I2C_ADDRESS = 0x48 # 0x48 is the default
 
@@ -59,7 +59,10 @@ def take_reading() -> Reading:
 		voltage = channel0.voltage
 
 		# Get Timestamp
-		ct = datetime.datetime.utcnow()
+		# This function gets the current UTC date and time. However, it does not include any timezone information.
+		#ct = datetime.datetime.utcnow()
+		# This method should get the current UTC date and time, and include timezone info.
+		ct = datetime.datetime.now(datetime.timezone.utc)
 
 		# Convert the read voltage to pressure
 		# This would be the equation to change due to any calibration
@@ -69,7 +72,7 @@ def take_reading() -> Reading:
 		# Do not report negative pressure values
 		if pressure < 0: pressure = 0
 
-		this_reading = Reading(datetime=ct.strftime('%Y-%m-%d %H:%M:%S'),
+		this_reading = Reading(datetime=ct.strftime('%Y-%m-%d %H:%M:%S %Z'),
 													rawvalue=raw_value,
 													voltage=voltage,
 													pressure=pressure)
