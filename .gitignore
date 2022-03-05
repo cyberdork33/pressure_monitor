@@ -1,6 +1,9 @@
 # Site Instance Data
 site_db.sqlite3
 
+# Do not track secrets
+.env.py
+
 # Output files
 *.csv
 

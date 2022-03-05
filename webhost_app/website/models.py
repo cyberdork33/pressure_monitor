@@ -6,6 +6,7 @@ from sqlalchemy.sql import func
 
 class MonitorReading(db.Model):
   id = db.Column(db.Integer, primary_key=True)
+  # TODO Correct this. The name "datetime" conflicts with library
   datetime = db.Column(db.DateTime(timezone=True), default=func.now())
   rawvalue = db.Column(db.Integer)
   voltage = db.Column(db.Float)
@@ -18,6 +19,7 @@ class MonitorReading(db.Model):
 
 class CalibrationReading(db.Model):
   id = db.Column(db.Integer, primary_key=True)
+  # TODO Correct this. The name "datetime" conflicts with library
   datetime = db.Column(db.DateTime(timezone=True), default=func.now())
   rawvalue = db.Column(db.Integer)
   voltage = db.Column(db.Float)

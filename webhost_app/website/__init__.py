@@ -12,7 +12,7 @@ def create_app():
 
   # General App Setup
   app = Flask(__name__)
-  app.config['SECRET_KEY'] = '78efdeeb9a6135ae65acf8a797ede88d775047cb36a7c80c9f17f3e3'
+  app.config.from_pyfile('.env.py')
   app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
   app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False #Suppress Deprecation Warning
   db.init_app(app)
@@ -52,4 +52,5 @@ def create_scheduler(app):
 def create_database(app):
   if not path.exists('website/' + DB_NAME):
     db.create_all(app=app)
+    # TODO Inject fake data if creatng new?
     print("Created Database!")
