@@ -6,6 +6,7 @@ from .models import MonitorReading
 ## GLOBALS
 DATA_SOURCE_URL = 'http://pressure-pi/json'
 RECORD_LIFETIME = 1 #weeks
+TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
 
 
 def cron_reading(app):
@@ -20,10 +21,9 @@ def get_new_reading(address: str) -> MonitorReading:
   theJSON = r.json()
   # TODO Test for no response!
   print(f"Time String from JSON: {theJSON[0]}")
-  without_fracional_seconds = theJSON[0].split('.')[0]
-  datetime_object = datetime.strptime(without_fracional_seconds,
-                                      '%Y-%m-%d %H:%M:%S %Z')
-  print(f"Time from datetime: {datetime_object}")
+  timestamp_string = theJSON[0].split('.')[0]
+  datetime_object = datetime.strptime(timestamp_string, TIMESTAMP_FORMAT)
+  print(f"datetime object: {datetime_object}")
   reading = MonitorReading( datetime=datetime_object,
                             rawvalue=theJSON[1],
                             voltage=theJSON[2],

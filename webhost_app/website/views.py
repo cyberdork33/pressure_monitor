@@ -1,5 +1,5 @@
-import requests, json, time
-from datetime import datetime, timedelta
+from datetime import datetime
+from dateutil import tz
 from collections import namedtuple
 
 from flask import Blueprint, render_template, request, flash
@@ -20,6 +20,7 @@ DATA_SOURCE_URL = 'http://pressure-pi/json'
 READING_DELTA = 15# minutes
 MIN_PRESSURE_FOR_ON = 30#psi
 RECORD_LIFETIME = 1 #weeks
+TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
 
 views = Blueprint('views', __name__)
 
@@ -35,11 +36,17 @@ def home():
   # TODO od these queries to only grab the last week's worth of data
   date_data = [reading.datetime for reading in MonitorReading.query.all()]
 
+  # Timestamps from database are in UTC.
   # Convert all the times to the local timezone
   local_dates = []
   for date in date_data:
     local_dates.append(utc2local(date))
   date_data = local_dates
+
+  # Format last timestamp for display
+  current_timestamp = utc2local(page_data.reading.datetime)
+  printable_timestamp = current_timestamp.strftime(TIMESTAMP_FORMAT)
+  print(f"Formatted Current Timestamp: {printable_timestamp}")
 
   # Now get the pressures
   pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
@@ -51,7 +58,7 @@ def home():
                          user=current_user,
                          on_now=page_data.on_now,
                          current_pressure=page_data.printable_pressure,
-                         reading=page_data.reading,
+                         current_timestamp=printable_timestamp,
                          plotData=plot_elements)
 
 @views.route('/about')
@@ -119,11 +126,9 @@ def common_page_data() -> DisplayData:
                       pressure=last_reading.pressure)
 
   ## Prepare everything to go into the page templates.
-
-  # Convert time zone to local
-  r.datetime = utc2local(r.datetime)
-
+  # Format the pressure value
   printable_pressure = f"{r.pressure:5.2f}"
+
   # Determine if water is "on"
   on_now = False
   if r.pressure > MIN_PRESSURE_FOR_ON:
@@ -146,6 +151,9 @@ def generate_plots(dates, pressures) -> str:
                                fixedrange=True),
                     xaxis=dict(tickangle = 90,
                                dtick=60*60*4*1000)) # Time in milliseconds
+
+# TODO Explore possiblity of making the set ticks dynamic based on zoom level.
+# For example, when zoomed in close, the labels should be every hour instead of 4.
 
   fig.add_scatter(x=dates, y=pressures,
                   name="Measured Pressure",
@@ -171,8 +179,14 @@ def generate_plots(dates, pressures) -> str:
 
   return plot_elements
 
-# https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime
+# This depends on the dateutil library
 def utc2local(utc:datetime) -> datetime:
-    epoch = time.mktime(utc.timetuple())
-    offset = datetime.fromtimestamp(epoch) - datetime.utcfromtimestamp(epoch)
-    return utc + offset
+
+  # Force readings to be in UTC
+  current_timestamp = utc.replace(tzinfo=tz.tzutc())
+  # now convert to local
+  current_timestamp = current_timestamp.astimezone(tz.tzlocal())
+  # If the above is not consistent in getting the correct local timezone, force it to the timezone you want.
+  #to_zone = tz.gettz('America/New_York')
+  # current_timestamp = current_timestamp.astimezone(to_zone)
+  return current_timestamp
