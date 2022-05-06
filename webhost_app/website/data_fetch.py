@@ -5,7 +5,6 @@ from .models import MonitorReading
 
 ## GLOBALS
 DATA_SOURCE_URL = 'http://pressure-pi/json'
-RECORD_LIFETIME = 1 #weeks
 TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
 
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import tz
 from collections import namedtuple
 
@@ -19,7 +19,6 @@ DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
 DATA_SOURCE_URL = 'http://pressure-pi/json'
 READING_DELTA = 15# minutes
 MIN_PRESSURE_FOR_ON = 30#psi
-RECORD_LIFETIME = 1 #weeks
 TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
 
 views = Blueprint('views', __name__)
@@ -46,7 +45,7 @@ def home():
   # Format last timestamp for display
   current_timestamp = utc2local(page_data.reading.datetime)
   printable_timestamp = current_timestamp.strftime(TIMESTAMP_FORMAT)
-  print(f"Formatted Current Timestamp: {printable_timestamp}")
+  # print(f"Formatted Current Timestamp: {printable_timestamp}")
 
   # Now get the pressures
   pressure_data = [reading.pressure for reading in MonitorReading.query.all()]
@@ -85,6 +84,8 @@ def admin():
       # Notify the user that the reading was taken
       flash(f"A reading was taken. The pressure is "
             f"{page_data.printable_pressure} psi.", category='success')
+            #TODO This uses the pressure that was previously passed in
+            # instead of the newly read presssure. Need to fix this.
     # ----- Handle the "Calibration Reading" Button
     elif button_clicked == 'calibrateReading':
       # Call the calibrate-reading method
@@ -119,7 +120,7 @@ def common_page_data() -> DisplayData:
 
   # If the last reading was within the valid window,
   # just use what is in the database.
-  print('last_reading content = ', last_reading)
+  # print('last_reading content = ', last_reading)
   r = MonitorReading(	datetime=last_reading.datetime,
                       rawvalue=last_reading.rawvalue,
                       voltage=last_reading.voltage,
@@ -142,20 +143,53 @@ def common_page_data() -> DisplayData:
 ##------------------------------------------------------------------------------
 ## This is the function that uses plotly to generate the plot(s). It outputs
 ## a string of HTML that can be inserted in the final page. This is not
-## standalone though and will require that hte using page include the plotly js
+## standalone though and will require that the using page include the plotly js
 ## script to display.
+
 def generate_plots(dates, pressures) -> str:
+
+# TODO Explore possiblity of making the set ticks dynamic based on zoom level.
+# For example, when zoomed in close, the labels should be every hour instead of 4.
+# fig.update_layout(
+#     xaxis_tickformatstops = [
+#         dict(dtickrange=[None, 1000], value="%H:%M:%S.%L ms"),
+#         dict(dtickrange=[1000, 60000], value="%H:%M:%S s"),
+#         dict(dtickrange=[60000, 3600000], value="%H:%M m"),
+#         dict(dtickrange=[3600000, 86400000], value="%H:%M h"),
+#         dict(dtickrange=[86400000, 604800000], value="%e. %b d"),
+#         dict(dtickrange=[604800000, "M1"], value="%e. %b w"),
+#         dict(dtickrange=["M1", "M12"], value="%b '%y M"),
+#         dict(dtickrange=["M12", None], value="%Y Y")
+#     ]
+# )
+
+  ## Setup data
+  # Convert objects to local timezone
+  dates = list(map(utc2local, dates))
+  # get the current time and localize it
+  now = datetime.now()
+  now = utc2local(now.replace(tzinfo=tz.tzutc()))
+
+  # initialize the string to put in the page
+  plot_elements = ''
+
+  ## PLOT1: For the 1st plot, plot only the last 24 hours
+  cutoff_date = now - timedelta(hours=24)
+
+  # Filter the data
+  new_list = [[j,i] for i, j in zip(pressures, dates) if j > cutoff_date]
+  filtered_dates, filtered_pressures = list(zip(*new_list))
+
+  # setup the figure
   fig = go.Figure()
-  fig.update_layout(height=500)
+  fig.update_layout(height=500,
+                    title="Data for the last 24 hrs.")
   fig.update_layout(yaxis=dict(title="Pressure [psi]",
                                fixedrange=True),
                     xaxis=dict(tickangle = 90,
                                dtick=60*60*4*1000)) # Time in milliseconds
 
-# TODO Explore possiblity of making the set ticks dynamic based on zoom level.
-# For example, when zoomed in close, the labels should be every hour instead of 4.
-
-  fig.add_scatter(x=dates, y=pressures,
+  fig.add_scatter(x=filtered_dates, y=filtered_pressures,
                   name="Measured Pressure",
                   mode="lines+markers",
                   # mode="markers",
@@ -164,18 +198,57 @@ def generate_plots(dates, pressures) -> str:
                                 "Pressure: %{y:.2f} psi"
                                 "<extra></extra>",
                   )
-  fig.add_scatter(x=dates, y=[MIN_PRESSURE_FOR_ON]*len(dates),
-                  name="Minimum Pressure Needed")
+  fig.add_scatter(x=filtered_dates, y=[MIN_PRESSURE_FOR_ON]*len(filtered_dates),
+                  name="Minimum Pressure Needed",
+                  mode="lines")
 
   fig.update_layout(legend=dict(
                             yanchor="top",
                             y=1.2,
                             xanchor="left",
-                            x=0.01))
+                            x=0.7))
 
-  plot_elements = pio.to_html(fig,
+  plot_elements = plot_elements+pio.to_html(fig,
                               include_plotlyjs=False,
                               full_html=False)
+
+  ## PLOT2: For the 2nd plot, show data for the last week
+  cutoff_date = now - timedelta(weeks=1)
+
+  new_list = [[j,i] for i, j in zip(pressures, dates) if j > cutoff_date]
+  filtered_dates, filtered_pressures = list(zip(*new_list))
+
+  fig = go.Figure()
+  fig.update_layout(height=500, title="Data for the last week.")
+  fig.update_layout(yaxis=dict(title="Pressure [psi]",
+                              fixedrange=True),
+                    xaxis=dict(tickangle = 90,
+                              dtick=60*60*4*1000)) # Time in milliseconds
+
+  fig.add_scatter(x=filtered_dates, y=filtered_pressures,
+                  name="Measured Pressure",
+                  mode="lines+markers",
+                  # mode="markers",
+                  line_color="#17B897",
+                  hovertemplate="Time: %{x|%H:%M}<br>"
+                                "Pressure: %{y:.2f} psi"
+                                "<extra></extra>",
+                  )
+  fig.add_scatter(x=filtered_dates, y=[MIN_PRESSURE_FOR_ON]*len(filtered_dates),
+                  name="Minimum Pressure Needed",
+                  mode="lines")
+
+  fig.update_layout(legend=dict(
+                            yanchor="top",
+                            y=1.2,
+                            xanchor="left",
+                            x=0.7))
+
+  plot_elements = plot_elements+pio.to_html(fig,
+                              include_plotlyjs=False,
+                              full_html=False)
+
+  ## PLOT3: For the 3rd show the last month, but only pick the peak from each day...?
 
   return plot_elements
 
