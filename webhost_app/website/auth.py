@@ -36,31 +36,40 @@ def logout():
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
-  if request.method == 'POST':
-    email = request.form.get('email')
-    name = request.form.get('name')
-    password1 = request.form.get('password1')
-    password2 = request.form.get('password2')
 
-    # Get all users in db that have this email address
-    user = User.query.filter_by(email=email).first()
-    if user:
-      flash('Email already exists.', category='error')
-    elif len(password1) < 8:
-      flash('Passwords must be at least 8 characters!', category='error')
-    elif password1 != password2:
-      flash('Passwords did not match!', category='error')
-    else:
-      # add user to database
-      flash('Creating Account.', category='success')
-      new_user = User(email=email,
-                      name=name,
-                      password=generate_password_hash(password1,
-                                                      method='sha256'
-                                                      )
-                      )
-      db.session.add(new_user)
-      db.session.commit()
-      return redirect(url_for('auth.login'))
+  # Check if a user already exists
+  # If a user already exists, just redirect to the login page.
+  # otherwise allow the creation of a new user.
+  # TODO This is kinda hacky, but a temporary fix.
+  user = User.query.first()
+  if user:
+    return redirect(url_for('auth.login'))
+  else:
+    if request.method == 'POST':
+      email = request.form.get('email')
+      name = request.form.get('name')
+      password1 = request.form.get('password1')
+      password2 = request.form.get('password2')
+
+      # Get all users in db that have this email address
+      user = User.query.filter_by(email=email).first()
+      if user:
+        flash('Email already exists.', category='error')
+      elif len(password1) < 8:
+        flash('Passwords must be at least 8 characters!', category='error')
+      elif password1 != password2:
+        flash('Passwords did not match!', category='error')
+      else:
+        # add user to database
+        flash('Creating Account.', category='success')
+        new_user = User(email=email,
+                        name=name,
+                        password=generate_password_hash(password1,
+                                                        method='sha256'
+                                                        )
+                        )
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('auth.login'))
 
   return render_template('register.html.j2', user=current_user)
