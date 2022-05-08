@@ -178,7 +178,8 @@ def generate_plots(dates, pressures) -> str:
 
   # Filter the data
   new_list = [[j,i] for i, j in zip(pressures, dates) if j > cutoff_date]
-  filtered_dates, filtered_pressures = list(zip(*new_list))
+  if len(new_list) > 0:
+    filtered_dates, filtered_pressures = list(zip(*new_list))
 
   # setup the figure
   fig = go.Figure()
@@ -216,7 +217,8 @@ def generate_plots(dates, pressures) -> str:
   cutoff_date = now - timedelta(weeks=1)
 
   new_list = [[j,i] for i, j in zip(pressures, dates) if j > cutoff_date]
-  filtered_dates, filtered_pressures = list(zip(*new_list))
+  if len(new_list) > 0:
+    filtered_dates, filtered_pressures = list(zip(*new_list))
 
   fig = go.Figure()
   fig.update_layout(height=500, title="Data for the last week.")
