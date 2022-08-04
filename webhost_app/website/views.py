@@ -114,13 +114,29 @@ def common_page_data() -> DisplayData:
   # Get last reading from DB
   sort_field = MonitorReading.datetime.desc()
   last_reading = MonitorReading.query.order_by(sort_field).first()
+  now = datetime.utcnow().replace(tzinfo=tz.tzutc())
+
+  # TODO: Improve later.
+  # The following is very duplicative. It can probably be done
+  # better. I force the database data into the structure to make
+  # sure the timestamp is treated as a datetime object. It works for now.
+
   if not last_reading:
-    # There was no Last Reading. Force one.
+    # There was no reading. Force one.
     last_reading = record_new_reading(DATA_SOURCE_URL)
 
-  # If the last reading was within the valid window,
-  # just use what is in the database.
-  # print('last_reading content = ', last_reading)
+  # Put the last reading into the Structure
+  r = MonitorReading(	datetime=last_reading.datetime,
+                      rawvalue=last_reading.rawvalue,
+                      voltage=last_reading.voltage,
+                      pressure=last_reading.pressure)
+
+  # Was the reading recent?
+  if r.datetime.replace(tzinfo=tz.tzutc()) < (now - timedelta(minutes=READING_DELTA)):
+    # Take a new reading if not.
+    last_reading = record_new_reading(DATA_SOURCE_URL)
+
+  # Put the last reading into the Structure
   r = MonitorReading(	datetime=last_reading.datetime,
                       rawvalue=last_reading.rawvalue,
                       voltage=last_reading.voltage,
@@ -167,8 +183,7 @@ def generate_plots(dates, pressures) -> str:
   # Convert objects to local timezone
   dates = list(map(utc2local, dates))
   # get the current time and localize it
-  now = datetime.now()
-  now = utc2local(now.replace(tzinfo=tz.tzutc()))
+  now = utc2local(datetime.utcnow().replace(tzinfo=tz.tzutc()))
 
   # initialize the string to put in the page
   plot_elements = ''
@@ -180,6 +195,11 @@ def generate_plots(dates, pressures) -> str:
   new_list = [[j,i] for i, j in zip(pressures, dates) if j > cutoff_date]
   if len(new_list) > 0:
     filtered_dates, filtered_pressures = list(zip(*new_list))
+  else:
+    # Don't fail if there isn't data from the filtered time period.
+    # This shouldn't happen now since I built protection into the
+    # common page data function.
+    filtered_dates, filtered_pressures = [now], [0]
 
   # setup the figure
   fig = go.Figure()
@@ -219,6 +239,11 @@ def generate_plots(dates, pressures) -> str:
   new_list = [[j,i] for i, j in zip(pressures, dates) if j > cutoff_date]
   if len(new_list) > 0:
     filtered_dates, filtered_pressures = list(zip(*new_list))
+  else:
+    # Don't fail if there isn't data from the filtered time period.
+    # This shouldn't happen now since I built protection into the
+    # common page data function.
+    filtered_dates, filtered_pressures = [now], [0]
 
   fig = go.Figure()
   fig.update_layout(height=500, title="Data for the last week.")
