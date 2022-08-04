@@ -19,7 +19,8 @@ DisplayData = namedtuple("DisplayData", "printable_pressure on_now reading")
 DATA_SOURCE_URL = 'http://pressure-pi/json'
 READING_DELTA = 15# minutes
 MIN_PRESSURE_FOR_ON = 30#psi
-TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
+# TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
+TIMESTAMP_FORMAT = '%b %d, %Y %-I:%M:%S %p %Z'
 
 views = Blueprint('views', __name__)
 
@@ -36,11 +37,12 @@ def home():
   date_data = [reading.datetime for reading in MonitorReading.query.all()]
 
   # Timestamps from database are in UTC.
-  # Convert all the times to the local timezone
-  local_dates = []
+  # make sure dates are timezone aware
+  dates = []
+
   for date in date_data:
-    local_dates.append(utc2local(date))
-  date_data = local_dates
+    dates.append(date.replace(tzinfo=tz.tzutc()))
+  date_data = dates
 
   # Format last timestamp for display
   current_timestamp = utc2local(page_data.reading.datetime)
@@ -164,6 +166,9 @@ def common_page_data() -> DisplayData:
 
 def generate_plots(dates, pressures) -> str:
 
+# Reference
+# https://plotly.com/python/time-series/
+
 # TODO Explore possiblity of making the set ticks dynamic based on zoom level.
 # For example, when zoomed in close, the labels should be every hour instead of 4.
 # fig.update_layout(
@@ -189,6 +194,8 @@ def generate_plots(dates, pressures) -> str:
   plot_elements = ''
 
   ## PLOT1: For the 1st plot, plot only the last 24 hours
+  # Instead of filtering, I could just set the plot range:
+  # https://plotly.com/python/time-series/#time-series-plot-with-custom-date-range
   cutoff_date = now - timedelta(hours=24)
 
   # Filter the data
@@ -207,15 +214,16 @@ def generate_plots(dates, pressures) -> str:
                     title="Data for the last 24 hrs.")
   fig.update_layout(yaxis=dict(title="Pressure [psi]",
                                fixedrange=True),
-                    xaxis=dict(tickangle = 90,
+                    xaxis=dict(tickangle = 80,
                                dtick=60*60*4*1000)) # Time in milliseconds
+  fig.update_xaxes(tickformat="%-I:%M %p\n%m/%d/%Y")
 
   fig.add_scatter(x=filtered_dates, y=filtered_pressures,
                   name="Measured Pressure",
                   mode="lines+markers",
                   # mode="markers",
                   line_color="#17B897",
-                  hovertemplate="Time: %{x|%H:%M}<br>"
+                  hovertemplate="Time: %{x|%I:%M %p}<br>"
                                 "Pressure: %{y:.2f} psi"
                                 "<extra></extra>",
                   )
@@ -249,15 +257,16 @@ def generate_plots(dates, pressures) -> str:
   fig.update_layout(height=500, title="Data for the last week.")
   fig.update_layout(yaxis=dict(title="Pressure [psi]",
                               fixedrange=True),
-                    xaxis=dict(tickangle = 90,
-                              dtick=60*60*4*1000)) # Time in milliseconds
+                    xaxis=dict(tickangle = 80,
+                              dtick=24*60*60*1000)) # Time in milliseconds
+  fig.update_xaxes(tickformat="%b %d, %Y")
 
   fig.add_scatter(x=filtered_dates, y=filtered_pressures,
                   name="Measured Pressure",
                   mode="lines+markers",
                   # mode="markers",
                   line_color="#17B897",
-                  hovertemplate="Time: %{x|%H:%M}<br>"
+                  hovertemplate="%{x| %m/%d/%Y %I:%M %p}<br>"
                                 "Pressure: %{y:.2f} psi"
                                 "<extra></extra>",
                   )
@@ -285,8 +294,9 @@ def utc2local(utc:datetime) -> datetime:
   # Force readings to be in UTC
   current_timestamp = utc.replace(tzinfo=tz.tzutc())
   # now convert to local
-  current_timestamp = current_timestamp.astimezone(tz.tzlocal())
-  # If the above is not consistent in getting the correct local timezone, force it to the timezone you want.
-  #to_zone = tz.gettz('America/New_York')
-  # current_timestamp = current_timestamp.astimezone(to_zone)
+  # current_timestamp = current_timestamp.astimezone(tz.tzlocal())
+  # The above is reliable since the server's local time is often UTC...
+  # Force it to the timezone we want.
+  to_zone = tz.gettz('America/New_York')
+  current_timestamp = current_timestamp.astimezone(to_zone)
   return current_timestamp
