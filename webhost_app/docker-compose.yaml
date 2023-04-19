@@ -9,6 +9,10 @@ services:
     ports:
       - "8800:80"
 
+networks:
+  default:
+    external: true
+    name: freya-local
 # networks:
 #   default:
 #     external:
