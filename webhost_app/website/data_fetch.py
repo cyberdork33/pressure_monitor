@@ -4,7 +4,7 @@ from . import db
 from .models import MonitorReading
 
 ## GLOBALS
-DATA_SOURCE_URL = 'http://pressure-pi/json'
+DATA_SOURCE_URL = 'http://192.168.058/json'
 TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S %Z'
 
 
