@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from os import path
 from dateutil import tz, parser
 import monitor
+import pressInterface
 
 # General App Setup
 app = Flask(__name__)
@@ -39,6 +40,10 @@ def home():
 @app.route('/json')
 def json():
 	return monitor.reading_json()
+
+@app.route('/calibrate')
+def calibrate():
+	return pressInterface.reading_calibration()
 
 if __name__ == "__main__":
 	app.run(host='0.0.0.0', debug=True)

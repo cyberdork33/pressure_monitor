@@ -41,8 +41,10 @@ The sample code provided with the library included a 'simpletest' script. I util
 
 ## Reference
 
+Original Link
 [Walfront 100 psi Pressure Transducer](https://www.amazon.com/gp/product/B0748BHLQL/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&th=1)
 
+Data Table from Amazon
 
 |                |               |
 | :---           | :---          |
@@ -57,6 +59,19 @@ The sample code provided with the library included a 'simpletest' script. I util
 | Wiring Connector | Water sealed quick disconnect. Mating connector and wire harness (pigtail) is included. |
 | Wiring | Red for +5V; Black for ground; Blue for signal output. |
 
+Unfortunately, this information does not seem correct as the data points they list for a linear output between 0.5 V and 4.5 V does not make sense. Some discussion on using these with Raspberry Pi is here: https://raspberrypi.stackexchange.com/questions/54155/connect-a-pressure-sensor-with-raspberry-pi-2
+
+> However, the output of the device is really just a function of voltage in and you can also run in on 3.3v if it makes you feel more comfortable.
+>
+> All that said, similar-looking sensors run at also much lower pressures (0-10 psi, for instance) and their performance will be very different. Regardless it is necessary to locate the vendor-specific piece of info for your device that explains the transfer function.
+>
+> In the case of what I think is this sensor, the function is `Vout = Vcc(.66667 * P + .1)` This info is also embedded in a few python examples that are floating around out there for reading this sensor.
+>
+> For example, at 100psi (.69 mPa) and 5v Vcc, you should see something like:
+>
+> `5 * (.66667 * .69 + .1) = 2.8v`
+>
+> Note that if you used 3.3v as Vcc you would get something more like 1.848v out reported to your ADC.
 
 [Texas Instruments ADS1115](https://www.ti.com/product/ADS1115)
 
@@ -78,3 +93,44 @@ The sample code provided with the library included a 'simpletest' script. I util
 | Analog voltage AVDD (Max) | 5.5 V |
 
 Must `sudo apt-get install libatlas-base-dev` to install the libblas library
+
+
+## Dev Environment
+
+Use a python virtual environment:
+```
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Install dependencies
+```
+pip install -r requirements.txt
+```
+
+RPi source voltage is pretty much exactly 3.3 V as measured at the sensor connector.
+
+## Rpi running server
+
+supervisor service
+
+config file `/etc/supervisor/conf.d/supervisor.conf`:
+```
+[supervisord]
+nodaemon=true
+
+[program:nginx]
+command=/usr/sbin/nginx -g 'daemon off;'
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:uwsgi]
+command=/usr/bin/uwsgi --ini /etc/uwsgi/uwsgi-common.ini --ini /app/uwsgi-app.ini
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+```
