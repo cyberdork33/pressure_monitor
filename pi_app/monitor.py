@@ -18,6 +18,8 @@ SUPPLY_VOLTAGE = 3.3# Volts. This is the supply voltage to the Pressure Sensor.
 DEFAULT_FILENAME = 'monitor.csv' # This is the default location to write out data for constant monitoring.
 DEFAULT_DELTAT = 60*15# Seconds
 I2C_ADDRESS = 0x48 # 0x48 is the default
+CAL_SLOPE = 0.004717125278 # Line Slope from calibration
+CAL_INTERCEPT = -2.129835157 # Intercept from calibration
 
 ##------------------------------------------------------------------------------
 ## Setup interface with ADC
@@ -65,9 +67,8 @@ def take_reading() -> Reading:
 		ct = datetime.datetime.now(datetime.timezone.utc)
 
 		# Convert the read voltage to pressure
-		# This would be the equation to change due to any calibration
-		# P = ((V_read / Vcc) - 0.1) * 125
-		pressure = ((voltage / SUPPLY_VOLTAGE) - 0.1) * 125
+		# This is my calibration cuve data:
+		pressure = CAL_SLOPE * raw_value + CAL_INTERCEPT
 
 		# Do not report negative pressure values
 		if pressure < 0: pressure = 0
