@@ -134,3 +134,5 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 
 ```
+
+https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-22-04

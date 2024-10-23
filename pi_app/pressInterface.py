@@ -59,10 +59,12 @@ def reading_string() -> str:
 	return result
 
 def reading_calibration() -> str:
-	print("Timestamp, Raw Value, Voltage [V]")
+	# print("Timestamp, Raw Value, Voltage [V]")
+	result = ''
 	for i in range(CAL_READINGS):
 		r = get_reading()
-		print(f"{r.datetime:25}{r.rawvalue:5} {r.voltage:7.5f}")
+		result += f"{r.datetime:25}{r.rawvalue:5} {r.voltage:7.5f}<br />"
+	return result
 
 
 if __name__ == "__main__":
