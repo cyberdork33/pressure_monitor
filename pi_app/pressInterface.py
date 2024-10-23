@@ -47,6 +47,19 @@ def get_reading() -> Reading:
 		print("There was an error while taking the reading.")
 		return False
 
+def get_reading_ave(count:int) -> Reading:
+	valuesTotal = 0
+	voltagesTotal = 0
+	ct = datetime.datetime.now(datetime.timezone.utc)
+	for i in range(count):
+		r = get_reading()
+		valuesTotal += r.rawvalue
+		voltagesTotal += r.voltage
+	this_reading = Reading(datetime=ct.strftime('%Y-%m-%d %H:%M:%S %Z'),
+												 rawvalue=valuesTotal/count,
+												  voltage=voltagesTotal/count)
+	return this_reading
+
 ##------------------------------------------------------------------------------
 ## Returns reading data as a JSON string
 def reading_json() -> str:
@@ -63,7 +76,7 @@ def reading_calibration() -> str:
 	result = ''
 	for i in range(CAL_READINGS):
 		r = get_reading()
-		result += f"{r.datetime:25}{r.rawvalue:5} {r.voltage:7.5f}<br />"
+		result += f"{r.datetime:25}{r.rawvalue:5} {r.voltage:7.5f}<br />\n"
 	return result
 
 
@@ -71,10 +84,5 @@ if __name__ == "__main__":
 	# print("Timestamp, Raw Value, Voltage [V]")
 	# print(reading_string())
 	# print(reading_json())
-	reading_calibration()
-
-
-# Convert the read voltage to pressure
-# This would be the equation to change due to any calibration
-# P = ((V_read / Vcc) - 0.1) * 125
-# pressure = ((voltage / SUPPLY_VOLTAGE) - 0.1) * 125
+	# print(reading_calibration())
+	print(get_reading_ave(10))
