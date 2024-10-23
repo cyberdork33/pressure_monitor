@@ -10,6 +10,8 @@ from adafruit_ads1x15.analog_in import AnalogIn
 ## Global Vars
 I2C_ADDRESS = 0x48 # 0x48 is the default
 CAL_READINGS = 10
+CAL_SLOPE = 0.00471823169 # Line Slope from calibration
+CAL_INTERCEPT = -2.117998617 # Intercept from calibration
 
 ##------------------------------------------------------------------------------
 ## Setup interface with ADC
@@ -22,7 +24,7 @@ channel0 = AnalogIn(ads, ADS.P0)
 
 ##------------------------------------------------------------------------------
 ## Define a named tuple to hold data for a particular reading
-Reading = namedtuple("Reading", "datetime rawvalue voltage")
+Reading = namedtuple("Reading", "datetime rawvalue voltage pressure")
 
 ##------------------------------------------------------------------------------
 ## Every reading taken should report
@@ -39,8 +41,9 @@ def get_reading() -> Reading:
 		ct = datetime.datetime.now(datetime.timezone.utc)
 
 		this_reading = Reading(datetime=ct.strftime('%Y-%m-%d %H:%M:%S %Z'),
-													 rawvalue=raw_value,
-													 voltage=voltage)
+													rawvalue=raw_value,
+													voltage=voltage,
+													pressure=getPressure(raw_value))
 
 		return this_reading
 	except:
@@ -56,14 +59,16 @@ def get_reading_ave(count:int) -> Reading:
 		valuesTotal += r.rawvalue
 		voltagesTotal += r.voltage
 	this_reading = Reading(datetime=ct.strftime('%Y-%m-%d %H:%M:%S %Z'),
-												 rawvalue=valuesTotal/count,
-												  voltage=voltagesTotal/count)
+												rawvalue=valuesTotal/count,
+												voltage=voltagesTotal/count,
+												pressure=getPressure(valuesTotal/count))
 	return this_reading
 
 ##------------------------------------------------------------------------------
 ## Returns reading data as a JSON string
 def reading_json() -> str:
-	r = get_reading()
+	# r = get_reading()
+	r = get_reading_ave(CAL_READINGS)
 	return json.dumps(r)
 
 def reading_string() -> str:
@@ -79,10 +84,12 @@ def reading_calibration() -> str:
 		result += f"{r.datetime:25}{r.rawvalue:5} {r.voltage:7.5f}<br />\n"
 	return result
 
+def getPressure(rawvalue) -> float:
+	return CAL_SLOPE*rawvalue+CAL_INTERCEPT
 
 if __name__ == "__main__":
 	# print("Timestamp, Raw Value, Voltage [V]")
 	# print(reading_string())
 	# print(reading_json())
 	# print(reading_calibration())
-	print(get_reading_ave(10))
+	print(get_reading_ave(CAL_READINGS))

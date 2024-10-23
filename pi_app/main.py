@@ -1,17 +1,21 @@
 from flask import Flask, render_template, request
 from os import path
 from dateutil import tz, parser
-import monitor
+# import monitor
 import pressInterface
 
 # General App Setup
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'I7JYZmBVX610l15tkv5Ldc7Vnak347auzeXm8tECJS4'
 
+# Constants
+READ_COUNT = 10
+
 @app.route('/')
 def home():
 	# Read current pressure from sensor
-	r = monitor.take_reading()
+	# r = monitor.take_reading()
+	r = pressInterface.get_reading_ave(READ_COUNT)
 
 	# Make it pretty
 	printable_pressure = f"{r.pressure:5.2f}"
@@ -39,7 +43,7 @@ def home():
 
 @app.route('/json')
 def json():
-	return monitor.reading_json()
+	return pressInterface.reading_json()
 
 @app.route('/calibrate')
 def calibrate():
