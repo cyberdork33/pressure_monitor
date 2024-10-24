@@ -71,11 +71,15 @@ def reading_json() -> str:
 	r = get_reading_ave(CAL_READINGS)
 	return json.dumps(r)
 
+##------------------------------------------------------------------------------
+## Returns reading data as a printable string
 def reading_string() -> str:
 	r = get_reading()
 	result = f"{r.datetime:25}, {r.rawvalue:5}, {r.voltage:7.5f}"
 	return result
 
+##------------------------------------------------------------------------------
+## Returns several reading in a format that can be used for calibration
 def reading_calibration() -> str:
 	# print("Timestamp, Raw Value, Voltage [V]")
 	result = ''
@@ -84,6 +88,8 @@ def reading_calibration() -> str:
 		result += f"{r.datetime:25}{r.rawvalue:5} {r.voltage:7.5f}<br />\n"
 	return result
 
+##------------------------------------------------------------------------------
+## The linear curve fit to convert the raw integer to pressure.
 def getPressure(rawvalue) -> float:
 	return CAL_SLOPE*rawvalue+CAL_INTERCEPT
 
